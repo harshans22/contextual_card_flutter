@@ -62,34 +62,9 @@ class HC1SmallDisplayCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (card.formattedTitle != null)
-                    TextUtils.buildFormattedText(
-                      card.formattedTitle!,
-                      defaultFontSize: 14,
-                      defaultColor: Colors.black,
-                      defaultFontWeight: FontWeight.w600,
-                    )
-                  else if (card.title != null && card.title!.isNotEmpty)
-                    TextUtils.buildSimpleText(
-                      card.title,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  if (card.formattedDescription != null ||
-                      (card.description != null && card.description!.isNotEmpty))
-                    const SizedBox(height: 2),
-                  if (card.formattedDescription != null)
-                    TextUtils.buildFormattedText(
-                      card.formattedDescription!,
-                      defaultFontSize: 12,
-                      defaultColor: Colors.grey[600]!,
-                    )
-                  else if (card.description != null && card.description!.isNotEmpty)
-                    TextUtils.buildSimpleText(
-                      card.description,
-                      fontSize: 12,
-                      color: Colors.grey[600]!,
-                    ),
+                  _buildTitle(),
+                  const SizedBox(height: 2),
+                  _buildDescription(),
                 ],
               ),
             ),
@@ -97,5 +72,28 @@ class HC1SmallDisplayCard extends StatelessWidget {
         ),
       ),
     );
+  }
+  
+  Widget _buildTitle() {
+    final titleWidget = TextUtils.buildFormattedText(
+      card.formattedTitle,
+      fallbackText: card.title,
+      defaultFontSize: 14,
+      defaultColor: Colors.black,
+      defaultFontWeight: FontWeight.w600,
+    );
+    
+    return titleWidget;
+  }
+  
+  Widget _buildDescription() {
+    final descWidget = TextUtils.buildFormattedText(
+      card.formattedDescription,
+      fallbackText: card.description,
+      defaultFontSize: 12,
+      defaultColor: Colors.grey[600]!,
+    );
+    
+    return descWidget;
   }
 }

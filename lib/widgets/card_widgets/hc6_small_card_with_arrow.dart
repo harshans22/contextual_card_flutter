@@ -31,13 +31,14 @@ class HC6SmallCardWithArrow extends StatelessWidget {
           children: [
             if (card.icon != null) ...[
               SizedBox(
-                width: 24,
-                height: 24,
+                width: card.iconSize ?? 24,
+                height: card.iconSize ?? 24,
                 child: CachedNetworkImage(
                   imageUrl: card.icon!.imageUrl ?? '',
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
                     color: Colors.grey[300],
+                    child: const Icon(Icons.image, size: 16),
                   ),
                   errorWidget: (context, url, error) => Container(
                     color: Colors.grey[300],
@@ -48,18 +49,7 @@ class HC6SmallCardWithArrow extends StatelessWidget {
               const SizedBox(width: 12),
             ],
             Expanded(
-              child: card.formattedTitle != null
-                  ? TextUtils.buildFormattedText(
-                      card.formattedTitle!,
-                      defaultFontSize: 14,
-                      defaultColor: Colors.black,
-                      defaultFontWeight: FontWeight.w600,
-                    )
-                  : TextUtils.buildSimpleText(
-                      card.title,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: _buildTitle(),
             ),
             const Icon(
               Icons.arrow_forward_ios,
@@ -69,6 +59,32 @@ class HC6SmallCardWithArrow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+  
+  Widget _buildTitle() {
+    // First try formatted title
+    if (card.formattedTitle != null) {
+      final formattedWidget = TextUtils.buildFormattedText(
+        card.formattedTitle!,
+        fallbackText: card.title,
+        defaultFontSize: 14,
+        defaultColor: Colors.black,
+        defaultFontWeight: FontWeight.w600,
+      );
+      
+      // Check if the widget has content
+      if (formattedWidget is! SizedBox) {
+        return formattedWidget;
+      }
+    }
+    
+    // Fallback to simple title
+    return TextUtils.buildSimpleText(
+      card.title,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: Colors.black,
     );
   }
 }

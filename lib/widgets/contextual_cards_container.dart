@@ -1,5 +1,6 @@
 import 'package:contextual_card_flutter/services/storage_services.dart';
 import 'package:flutter/material.dart';
+
 import '../models/card_models.dart';
 import '../services/api_service.dart';
 import 'card_widgets/hc1_small_display_card.dart';
@@ -12,7 +13,8 @@ class ContextualCardsContainer extends StatefulWidget {
   const ContextualCardsContainer({super.key});
 
   @override
-  State<ContextualCardsContainer> createState() => _ContextualCardsContainerState();
+  State<ContextualCardsContainer> createState() =>
+      _ContextualCardsContainerState();
 }
 
 class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
@@ -63,22 +65,27 @@ class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
 
       for (final card in group.cards) {
         final isDismissed = await StorageService.isCardDismissed(card.slug);
-        if (!isDismissed) {
+        final isRemindLater = await StorageService.shouldRemindLater(card.slug);
+
+        // Only include cards that are not dismissed and not marked for remind later
+        if (!isDismissed && !isRemindLater) {
           filteredCards.add(card);
         }
       }
 
       if (filteredCards.isNotEmpty) {
-        filteredGroups.add(CardGroup(
-          id: group.id,
-          name: group.name,
-          designType: group.designType,
-          cards: filteredCards,
-          isScrollable: group.isScrollable,
-          height: group.height,
-          isFullWidth: group.isFullWidth,
-          level: group.level,
-        ));
+        filteredGroups.add(
+          CardGroup(
+            id: group.id,
+            name: group.name,
+            designType: group.designType,
+            cards: filteredCards,
+            isScrollable: group.isScrollable,
+            height: group.height,
+            isFullWidth: group.isFullWidth,
+            level: group.level,
+          ),
+        );
       }
     }
 
@@ -94,9 +101,10 @@ class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
   Widget _buildCardGroup(CardGroup cardGroup) {
     final designType = DesignType.fromString(cardGroup.designType);
 
+    // Handle different design types with proper scrolling logic
     switch (designType) {
       case DesignType.smallDisplayCard:
-        return _buildScrollableCards(cardGroup);
+        return _buildScrollableOrFixedCards(cardGroup);
       case DesignType.bigDisplayCard:
         return _buildSingleCard(cardGroup);
       case DesignType.imageCard:
@@ -105,6 +113,15 @@ class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
         return _buildSingleCard(cardGroup);
       case DesignType.dynamicWidthCard:
         return _buildScrollableCards(cardGroup);
+    }
+  }
+
+  Widget _buildScrollableOrFixedCards(CardGroup cardGroup) {
+    // If scrollable or multiple cards, use horizontal scroll
+    if (cardGroup.isScrollable || cardGroup.cards.length > 1) {
+      return _buildScrollableCards(cardGroup);
+    } else {
+      return _buildSingleCard(cardGroup);
     }
   }
 
@@ -132,24 +149,26 @@ class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: _buildCard(cardGroup.cards.first, cardGroup.designType, cardGroup.height),
+      child: _buildCard(
+        cardGroup.cards.first,
+        cardGroup.designType,
+        cardGroup.height,
+      ),
     );
   }
 
-  Widget _buildCard(ContextualCard card, String designType, double groupHeight) {
+  Widget _buildCard(
+    ContextualCard card,
+    String designType,
+    double groupHeight,
+  ) {
     switch (designType) {
       case 'HC1':
-        return SizedBox(
-          width: 320,
-          child: HC1SmallDisplayCard(card: card),
-        );
+        return SizedBox(width: 320, child: HC1SmallDisplayCard(card: card));
       case 'HC3':
         return SizedBox(
-          height: 600,
-          child: HC3BigDisplayCard(
-            card: card,
-            onRemove: _onCardRemoved,
-          ),
+          height: groupHeight > 0 ? groupHeight : 600,
+          child: HC3BigDisplayCard(card: card, onRemove: _onCardRemoved),
         );
       case 'HC5':
         return HC5ImageCard(card: card);
@@ -158,7 +177,7 @@ class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
       case 'HC9':
         return HC9DynamicWidthCard(
           card: card,
-          height: groupHeight,
+          height: groupHeight > 0 ? groupHeight : 195,
         );
       default:
         return const SizedBox.shrink();
@@ -168,9 +187,7 @@ class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_hasError) {
@@ -178,38 +195,32 @@ class _ContextualCardsContainerState extends State<ContextualCardsContainer> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _errorMessage,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadCards,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _loadCards, child: const Text('Retry')),
           ],
         ),
       );
     }
 
     if (_cardGroups.isEmpty) {
-      return const Center(
-        child: Text('No cards available'),
-      );
+      return const Center(child: Text('No cards available'));
     }
 
     return RefreshIndicator(

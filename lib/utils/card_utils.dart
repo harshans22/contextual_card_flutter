@@ -3,17 +3,30 @@ import 'package:url_launcher/url_launcher.dart';
 
 class CardUtils {
   static Future<void> handleDeepLink(String url) async {
-    try {
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        debugPrint('Could not launch $url');
-      }
-    } catch (e) {
-      debugPrint('Error launching URL: $e');
+  try {
+    final uri = Uri.tryParse(url);
+    if (uri == null || !(uri.isScheme('http') || uri.isScheme('https'))) {
+      debugPrint('Invalid URL: $url');
+      return;
     }
+
+    // For http/https, canLaunchUrl may return false on newer Android
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+      webViewConfiguration: const WebViewConfiguration(
+        enableJavaScript: true,
+      ),
+    );
+
+    if (!launched) {
+      debugPrint('Could not launch $url');
+    }
+  } catch (e) {
+    debugPrint('Error launching URL: $e');
   }
+}
+
   
   static EdgeInsets getCardPadding(String designType) {
     switch (designType) {
