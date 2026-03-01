@@ -5,7 +5,6 @@ import 'widgets/contextual_cards_container.dart';
 void main() {
   runApp(const MyApp());
 }
-//h
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
